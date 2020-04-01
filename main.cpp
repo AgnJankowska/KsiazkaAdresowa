@@ -8,10 +8,16 @@ using namespace std;
 struct InformationAboutSingleContact
 {
     string firstName, lastName, phoneNumber, email, address;
+    int userId, id;
+};
+
+struct InformationAboutUsers
+{
+    string userName, password;
     int id;
 };
 
-vector<InformationAboutSingleContact> loadContactList(int totalAmountOfContacts, InformationAboutSingleContact acquaintance)
+vector<InformationAboutSingleContact> loadContactList(int totalAmountOfContacts, InformationAboutSingleContact acquaintance, int idLoggedUser)
 {
     string line;
     fstream file;
@@ -20,7 +26,7 @@ vector<InformationAboutSingleContact> loadContactList(int totalAmountOfContacts,
 
     file.open("ksiazka.txt", ios::in);
 
-    if(file.good()==true)
+    if(file.good() == true)
     {
         while (!file.eof())
         {
@@ -31,28 +37,69 @@ vector<InformationAboutSingleContact> loadContactList(int totalAmountOfContacts,
                 size_t position1 = line.find(searchedSign);
                 acquaintance.id = atoi((line.substr(0,position1)).c_str());
 
-                size_t position2 = line.find( searchedSign, position1 + 1 );
-                acquaintance.firstName = line.substr(position1+1,(position2-position1-1));
+                size_t position2 = line.find(searchedSign, position1 + 1 );
+                acquaintance.userId = atoi((line.substr(position1+1,(position2-position1-1))).c_str());
 
                 size_t position3 = line.find( searchedSign, position2 + 1 );
-                acquaintance.lastName = line.substr(position2+1,(position3-position2-1));
+                acquaintance.firstName = line.substr(position2+1,(position3-position2-1));
 
                 size_t position4 = line.find( searchedSign, position3 + 1 );
-                acquaintance.phoneNumber = line.substr(position3+1,(position4-position3-1));
+                acquaintance.lastName = line.substr(position3+1,(position4-position3-1));
 
                 size_t position5 = line.find( searchedSign, position4 + 1 );
-                acquaintance.email = line.substr(position4+1,(position5-position4-1));
+                acquaintance.phoneNumber = line.substr(position4+1,(position5-position4-1));
 
                 size_t position6 = line.find( searchedSign, position5 + 1 );
-                acquaintance.address = line.substr(position5+1,(position6-position5-1));
+                acquaintance.email = line.substr(position5+1,(position6-position5-1));
 
-                acquaintances.push_back(acquaintance);
+                size_t position7 = line.find( searchedSign, position6 + 1 );
+                acquaintance.address = line.substr(position6+1,(position7-position6-1));
+
+                if (acquaintance.userId == idLoggedUser)
+                {
+                    acquaintances.push_back(acquaintance);
+                }
             }
         }
     }
     file.close();
 
     return acquaintances;
+}
+
+vector<InformationAboutUsers> loadUsersList(int totalAmountOfUsers, InformationAboutUsers user)
+{
+    string line;
+    fstream file;
+    vector<InformationAboutUsers> users;
+    char searchedSign='|';
+
+    file.open("uzytkownicy.txt", ios::in);
+
+    if(file.good()==true)
+    {
+        while (!file.eof())
+        {
+            for (int i=0; i<totalAmountOfUsers; i++)
+            {
+                getline(file,line);
+
+                size_t position1 = line.find(searchedSign);
+                user.id = atoi((line.substr(0,position1)).c_str());
+
+                size_t position2 = line.find( searchedSign, position1 + 1 );
+                user.userName = line.substr(position1+1,(position2-position1-1));
+
+                size_t position3 = line.find( searchedSign, position2 + 1 );
+                user.password = line.substr(position2+1,(position3-position2-1));
+
+                users.push_back(user);
+            }
+        }
+    }
+    file.close();
+
+    return users;
 }
 
 int checkTotalAmountOfContacts ()
@@ -80,7 +127,52 @@ int checkTotalAmountOfContacts ()
     return totalAmountOfContacts;
 }
 
-void saveNewContact(InformationAboutSingleContact acquaintance, vector<InformationAboutSingleContact>acquaintances, int totalAmountOfContacts)
+int checkTotalAmountOfUsers ()
+{
+    int totalAmountOfUsers;
+    int LineNumber=0;
+
+    fstream file;
+    file.open("uzytkownicy.txt", ios::in);
+
+    if(file.good()==false)
+        totalAmountOfUsers=0;
+
+    else
+    {
+        string line;
+        while (getline(file, line))
+        {
+            LineNumber++;
+        }
+        totalAmountOfUsers = LineNumber;
+    }
+
+    file.close();
+    return totalAmountOfUsers;
+}
+
+int checkLastId (int totalAmountOfContacts)
+{
+    fstream file;
+    string line;
+    int lastId = 0;
+
+    file.open("ksiazka.txt", ios::in);
+    for (int i = 0; i < totalAmountOfContacts; i++)
+    {
+        getline(file,line);
+
+        char searchedSign='|';
+        size_t position1 = line.find(searchedSign);
+        lastId = atoi((line.substr(0,position1)).c_str());
+    }
+    file.close();
+
+    return lastId;
+}
+
+void saveNewContact(InformationAboutSingleContact acquaintance, vector<InformationAboutSingleContact>acquaintances, int totalAmountOfContacts, int idLoggedUser)
 {
     string firstName, lastName, phoneNumber, email, address;
     int id;
@@ -102,20 +194,21 @@ void saveNewContact(InformationAboutSingleContact acquaintance, vector<Informati
 
     if(file.good()==false)
         id = 1;
+
     else
-        id = acquaintances[totalAmountOfContacts-1].id + 1;
+        id = checkLastId(totalAmountOfContacts) + 1;
 
     file.close();
 
     file.open("ksiazka.txt", ios::out | ios::app);
-    file << id << '|' << firstName << '|' << lastName << '|' << phoneNumber << '|' << email << '|' << address << '|' << endl;
+    file << id << '|' << idLoggedUser << '|' << firstName << '|' << lastName << '|' << phoneNumber << '|' << email << '|' << address << '|' << endl;
     file.close();
 
     cout << "Kontakt dodano do ksiazki adresowej: " << firstName << " " << lastName << endl;
     Sleep(2000);
 }
 
-void searchByFirstName(int totalAmountOfContacts, vector<InformationAboutSingleContact>acquaintances)
+void searchByFirstName(vector<InformationAboutSingleContact>acquaintances)
 {
     string firstName;
     string correctData = "";
@@ -123,7 +216,7 @@ void searchByFirstName(int totalAmountOfContacts, vector<InformationAboutSingleC
     cout << "Podaj imie szukanego kontaktu ";
     cin >> firstName;
 
-    for(int i=0; i<totalAmountOfContacts; i++)
+    for(int i=0; i < acquaintances.size(); i++)
     {
         if(acquaintances[i].firstName==firstName)
         {
@@ -151,14 +244,14 @@ void searchByFirstName(int totalAmountOfContacts, vector<InformationAboutSingleC
     getchar();
 }
 
-void searchByLastName(int totalAmountOfContacts, vector<InformationAboutSingleContact>acquaintances)
+void searchByLastName(vector<InformationAboutSingleContact>acquaintances)
 {
     string lastName;
     string correctData = "";
 
     cout << "Podaj nazwisko szukanego kontaktu ";
     cin >> lastName;
-    for(int i=0; i<totalAmountOfContacts; i++)
+    for(int i=0; i < acquaintances.size(); i++)
     {
         if(acquaintances[i].lastName == lastName)
         {
@@ -186,7 +279,7 @@ void searchByLastName(int totalAmountOfContacts, vector<InformationAboutSingleCo
     getchar();
 }
 
-void displayAllContacts(int totalAmountOfContacts, vector<InformationAboutSingleContact> acquaintances)
+void displayAllContacts(vector<InformationAboutSingleContact> acquaintances)
 {
     fstream file;
     file.open("ksiazka.txt", ios::in);
@@ -198,7 +291,7 @@ void displayAllContacts(int totalAmountOfContacts, vector<InformationAboutSingle
 
     else
     {
-        for(int i=0; i<totalAmountOfContacts; i++)
+        for(int i=0; i < acquaintances.size(); i++)
         {
             cout<<endl;
             cout << acquaintances[i].id << ". " << acquaintances[i].firstName <<" "<< acquaintances[i].lastName << endl;
@@ -217,7 +310,6 @@ void displayAllContacts(int totalAmountOfContacts, vector<InformationAboutSingle
 
 void deleteContact (int totalAmountOfContacts, vector<InformationAboutSingleContact> acquaintances)
 {
-    fstream file;
     int id;
     char userChoiceSideMenu;
     cout << "Podaj numer ID kontaktu ktory zamierzasz usunac ";
@@ -225,43 +317,61 @@ void deleteContact (int totalAmountOfContacts, vector<InformationAboutSingleCont
     cout << "Usunac kontakt o numerze ID " << id << "? (potwierdz klawiszem t/n) ";
     cin >> userChoiceSideMenu;
     cout << endl;
+    bool condition = false;
 
     if (userChoiceSideMenu == 't')
     {
-        for(int i = 0; i < totalAmountOfContacts; i++)
+        for(int i=0; i<acquaintances.size(); i++)
         {
-            if(acquaintances[i].id == id)
-            {
-                acquaintances.erase(acquaintances.begin() + i);
-            }
+            if (acquaintances[i].id == id)
+                condition = true;
         }
 
-        if ((acquaintances.size())/2 == totalAmountOfContacts)
+        if (condition == false)
         {
             cout << "Kontakt o wskazanym numerze ID nie istnieje." << endl;
         }
 
         else
         {
-            file.open("ksiazka.txt", ios::out);
-            for(int i = 0; i < totalAmountOfContacts-1; i++)
+            fstream file, file2;
+            string line;
+
+            file.open("ksiazka.txt", ios::in);
+            file2.open("ksiazka_tymczasowa.txt", ios::out);
+
+            for (int i=0; i < totalAmountOfContacts; i++)
             {
-                file << acquaintances[i].id << '|' << acquaintances[i].firstName << '|' << acquaintances[i].lastName << '|' << acquaintances[i].phoneNumber << '|' << acquaintances[i].email << '|' << acquaintances[i].address << '|' << endl;
+                getline(file,line);
+
+                char searchedSign='|';
+                size_t position1 = line.find(searchedSign);
+                int checkedId = atoi((line.substr(0,position1)).c_str());
+
+                if (checkedId != id)
+                {
+                    file2 << line << endl;
+                }
             }
+
             file.close();
+            file2.close();
+
+            remove("ksiazka.txt");
+            rename( "ksiazka_tymczasowa.txt", "ksiazka.txt" );
+
             cout << "Adresat zostal usuniety. ";
         }
-    }
 
-    cout << endl;
-    cout << "Wcisnij enter aby wrocic do menu glownego.";
-    getchar();
-    getchar();
+        cout << endl;
+        cout << "Wcisnij enter aby wrocic do menu glownego.";
+        getchar();
+        getchar();
+    }
 }
 
 void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContact> acquaintances)
 {
-    fstream file;
     int id;
     char userChoiceSideMenu;
     string changedData;
@@ -270,7 +380,7 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
     cout << "Podaj numer ID kontaktu ktory chcesz edytowac ";
     cin >> id;
 
-    for(int i = 0; i < totalAmountOfContacts; i++)
+    for(int i = 0; i < acquaintances.size(); i++)
     {
         if(acquaintances[i].id == id)
         {
@@ -293,7 +403,7 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
 
         if (userChoiceSideMenu == '1')
         {
-            for(int i = 0; i < totalAmountOfContacts; i++)
+            for(int i = 0; i < acquaintances.size(); i++)
             {
                 if(acquaintances[i].id == id)
                 {
@@ -308,7 +418,7 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
 
         else if (userChoiceSideMenu == '2')
         {
-            for(int i = 0; i < totalAmountOfContacts; i++)
+            for(int i = 0; i < acquaintances.size(); i++)
             {
                 if(acquaintances[i].id == id)
                 {
@@ -323,7 +433,7 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
 
         else if (userChoiceSideMenu == '3')
         {
-            for(int i = 0; i < totalAmountOfContacts; i++)
+            for(int i = 0; i < acquaintances.size(); i++)
             {
                 if(acquaintances[i].id == id)
                 {
@@ -338,7 +448,7 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
 
         else if (userChoiceSideMenu == '4')
         {
-            for(int i = 0; i < totalAmountOfContacts; i++)
+            for(int i = 0; i < acquaintances.size(); i++)
             {
                 if(acquaintances[i].id == id)
                 {
@@ -353,7 +463,7 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
 
         else if (userChoiceSideMenu == '5')
         {
-            for(int i = 0; i < totalAmountOfContacts; i++)
+            for(int i = 0; i < acquaintances.size(); i++)
             {
                 if(acquaintances[i].id == id)
                 {
@@ -372,15 +482,43 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
             exit(0);
         }
 
-        file.open("ksiazka.txt", ios::out);
-        for(int i = 0; i < totalAmountOfContacts; i++)
+        fstream file, file2;
+        string line;
+
+        file.open("ksiazka.txt", ios::in);
+        file2.open("ksiazka_tymczasowa.txt", ios::out);
+
+        for (int i=0; i < totalAmountOfContacts; i++)
         {
-            file << acquaintances[i].id << '|' << acquaintances[i].firstName << '|' << acquaintances[i].lastName << '|' << acquaintances[i].phoneNumber << '|' << acquaintances[i].email << '|' << acquaintances[i].address << '|' << endl;
+            getline(file,line);
+
+            char searchedSign='|';
+            size_t position1 = line.find(searchedSign);
+            int checkedId = atoi((line.substr(0,position1)).c_str());
+
+            if (checkedId == id)
+            {
+                for(int changedPosition = 0; changedPosition < acquaintances.size(); changedPosition++)
+                {
+                    if(acquaintances[changedPosition].id == id)
+                    {
+                        file2 << acquaintances[changedPosition].id << '|' << acquaintances[changedPosition].userId << '|' << acquaintances[changedPosition].firstName << '|' << acquaintances[changedPosition].lastName << '|' << acquaintances[changedPosition].phoneNumber << '|' << acquaintances[changedPosition].email << '|' << acquaintances[changedPosition].address << '|' << endl;
+                    }
+                }
+            }
+            else
+            {
+                file2 << line << endl;
+            }
         }
+
         file.close();
+        file2.close();
 
-
+        remove("ksiazka.txt");
+        rename( "ksiazka_tymczasowa.txt", "ksiazka.txt" );
     }
+
     else
     {
         cout << "Kontakt o wskazanym numerze ID nie istnieje." << endl;
@@ -392,66 +530,219 @@ void editContact (int totalAmountOfContacts, vector<InformationAboutSingleContac
     getchar();
 }
 
+void registartion (int totalAmountOfUsers, vector<InformationAboutUsers> users)
+{
+    int id;
+    string userName, password;
+    cout << "Podaje nazwe uzytkownika: ";
+    cin >> userName;
+
+    int i = 0;
+    while (i < totalAmountOfUsers)
+    {
+        if (users[i].userName == userName)
+        {
+            cout << "Taki uzytkownik istnieje. Wpisz inna nazwe uzytkownika: ";
+            cin >> userName;
+            i = 0;
+        }
+        else
+        {
+            i++;
+        }
+    }
+    cout << "Podaj haslo: ";
+    cin >> password;
+
+    fstream file;
+    file.open("uzytkownicy.txt", ios::in);
+
+    if(file.good()==false)
+        id = 1;
+    else
+        id = users[totalAmountOfUsers-1].id + 1;
+
+    file.close();
+
+    file.open("uzytkownicy.txt", ios::out | ios::app);
+    file << id << '|' << userName << '|' << password << '|' << endl;
+    file.close();
+
+    cout << "Konto zalozone";
+    Sleep(1000);
+}
+
+int loggingIn (int totalAmountOfUsers, vector<InformationAboutUsers> users)
+{
+    string userName, password;
+    cout << "Podaj nazwa uzytkownika: ";
+    cin >> userName;
+
+    int i = 0;
+    while (i < totalAmountOfUsers)
+    {
+        if (users[i].userName == userName)
+        {
+            for (int attempt=0; attempt < 3; attempt++)
+            {
+                cout << "Podaj haslo. Pozostalo prob "  << 3-attempt << ": ";
+                cin >> password;
+                if (users[i].password == password)
+                {
+                    cout << "Zalogowasles sie." << endl;
+                    Sleep (1000);
+                    return users[i].id;
+                }
+            }
+            cout << "Podales 3 razy bledne haslo. Odczekaj 3 sekundy przed kolejna proba." << endl;
+            Sleep(3000);
+            return 0;
+        }
+        i++;
+    }
+    cout << "Podany uzytkownik nie istnieje";
+    Sleep (1500);
+    return 0;
+}
+
+void changePassword (int totalAmountOfUsers, vector<InformationAboutUsers> users, int idLoggedUser)
+{
+    fstream file;
+    string password;
+    cout << "Podaj nowe haslo: ";
+    cin >> password;
+
+    for (int i=0; i < totalAmountOfUsers; i++)
+    {
+        if (users[i].id == idLoggedUser)
+        {
+            users[i].password = password;
+            cout << "Haslo zostalo zmienione"<<endl;
+            Sleep (2000);
+        }
+    }
+
+    file.open("uzytkownicy.txt", ios::out);
+    for(int i = 0; i < totalAmountOfUsers; i++)
+    {
+        file << users[i].id << '|' << users[i].userName << '|' << users[i].password << '|' << endl;
+    }
+    file.close();
+}
+
 int main()
 {
     InformationAboutSingleContact acquaintance;
-    int totalAmountOfContacts = checkTotalAmountOfContacts();
-    vector<InformationAboutSingleContact> acquaintances = loadContactList(totalAmountOfContacts, acquaintance);
+    InformationAboutUsers user;
 
+    int totalAmountOfContacts = checkTotalAmountOfContacts();
+    int totalAmountOfUsers = checkTotalAmountOfUsers();
+
+    vector<InformationAboutSingleContact> acquaintances;
+    vector<InformationAboutUsers> users = loadUsersList(totalAmountOfUsers, user);
+
+    char userChoiceLogInMenu;
     char userChoiceMainMenu;
+
+    int idLoggedUser = 0;
+
     while(1)
     {
-        system("cls");
-        cout << "KSIAZKA ADRESOWA" << endl;
-        cout << "1. Dodaj adresata" << endl;
-        cout << "2. Wyszukaj po imieniu" << endl;
-        cout << "3. Wyszukaj po nazwisku" << endl;
-        cout << "4. Wyswietl wszystkich adresatow" << endl;
-        cout << "5. Usun adresta" << endl;
-        cout << "6. Edytuj adresata" << endl;
-        cout << "9. Zakoncz program" << endl;
-        cout << "Twoj wybor: ";
-        cin >> userChoiceMainMenu;
-        cout << endl;
-
-        if (userChoiceMainMenu=='1')
+        if (idLoggedUser == 0)
         {
-            saveNewContact(acquaintance, acquaintances, totalAmountOfContacts);
+            system("cls");
+            cout << "1. Logowanie" << endl;
+            cout << "2. Rejestracja" << endl;
+            cout << "9. Zakoncz program" << endl;
+            cout << "Twoj wybor: ";
+            cin >> userChoiceLogInMenu;
+            cout << endl;
+
+            if (userChoiceLogInMenu=='1')
+            {
+                idLoggedUser = loggingIn (totalAmountOfUsers, users);
+            }
+
+            else if (userChoiceLogInMenu=='2')
+            {
+                registartion (totalAmountOfUsers, users);
+                totalAmountOfUsers = checkTotalAmountOfUsers();
+                users = loadUsersList(totalAmountOfUsers, user);
+            }
+
+            else if (userChoiceLogInMenu=='9')
+            {
+                exit(0);
+            }
         }
 
-        else if (userChoiceMainMenu=='2')
+        else
         {
-            searchByFirstName(totalAmountOfContacts, acquaintances);
-        }
+            system("cls");
+            cout << "KSIAZKA ADRESOWA" << endl;
+            cout << "1. Dodaj adresata" << endl;
+            cout << "2. Wyszukaj po imieniu" << endl;
+            cout << "3. Wyszukaj po nazwisku" << endl;
+            cout << "4. Wyswietl wszystkich adresatow" << endl;
+            cout << "5. Usun adresta" << endl;
+            cout << "6. Edytuj adresata" << endl;
+            cout << "7. Zmien haslo" << endl;
+            cout << "8. Wyloguj sie" << endl;
+            cout << "9. Zakoncz program" << endl;
+            cout << "Twoj wybor: ";
+            cin >> userChoiceMainMenu;
+            cout << endl;
 
-        else if (userChoiceMainMenu=='3')
-        {
-            searchByLastName(totalAmountOfContacts, acquaintances);
-        }
-
-        else if (userChoiceMainMenu=='4')
-        {
-            displayAllContacts(totalAmountOfContacts, acquaintances);
-        }
-
-        else if (userChoiceMainMenu=='5')
-        {
-            deleteContact(totalAmountOfContacts, acquaintances);
             totalAmountOfContacts = checkTotalAmountOfContacts();
-        }
+            acquaintances = loadContactList(totalAmountOfContacts, acquaintance, idLoggedUser);
 
-        else if (userChoiceMainMenu=='6')
-        {
-            editContact(totalAmountOfContacts, acquaintances);
-        }
+            if (userChoiceMainMenu=='1')
+            {
+                saveNewContact(acquaintance, acquaintances, totalAmountOfContacts, idLoggedUser);
+            }
 
-        else if (userChoiceMainMenu=='9')
-        {
-            exit(0);
-        }
+            else if (userChoiceMainMenu=='2')
+            {
+                searchByFirstName(acquaintances);
+            }
 
-        totalAmountOfContacts = checkTotalAmountOfContacts();
-        acquaintances = loadContactList(totalAmountOfContacts, acquaintance);
+            else if (userChoiceMainMenu=='3')
+            {
+                searchByLastName(acquaintances);
+            }
+
+            else if (userChoiceMainMenu=='4')
+            {
+                displayAllContacts(acquaintances);
+            }
+
+            else if (userChoiceMainMenu=='5')
+            {
+                deleteContact(totalAmountOfContacts, acquaintances);
+                totalAmountOfContacts = checkTotalAmountOfContacts();
+            }
+
+            else if (userChoiceMainMenu=='6')
+            {
+                editContact(totalAmountOfContacts, acquaintances);
+            }
+
+            else if (userChoiceMainMenu=='7')
+            {
+                changePassword(totalAmountOfUsers, users, idLoggedUser);
+                users = loadUsersList(totalAmountOfUsers, user);
+            }
+
+            else if (userChoiceMainMenu=='8')
+            {
+                idLoggedUser = 0;
+            }
+
+            else if (userChoiceMainMenu=='9')
+            {
+                exit(0);
+            }
+        }
     }
     return 0;
 }
